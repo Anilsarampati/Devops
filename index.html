@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Employee Management Dashboard</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --muted:#9aa6b2;
+    --accent:#06b6d4;
+    --glass: rgba(255,255,255,0.03);
+    --danger:#ef4444;
+    --success:#10b981;
+    --white:#e6eef3;
+    --radius:12px;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background:linear-gradient(180deg,#071021 0%, #091523 60%); color:var(--white); -webkit-font-smoothing:antialiased}
+  .app{display:grid; grid-template-columns:260px 1fr; gap:18px; padding:20px; min-height:100vh;}
+  /* Sidebar */
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:var(--radius); padding:18px; height:calc(100vh - 40px); position:sticky; top:10px; overflow:auto}
+  .brand{display:flex; align-items:center; gap:12px; margin-bottom:12px}
+  .logo{width:44px; height:44px; background:linear-gradient(135deg,var(--accent), #7c3aed); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:700; color:#021021}
+  .nav{margin-top:8px}
+  .nav a{display:flex; gap:10px; align-items:center; padding:10px; border-radius:8px; color:var(--muted); text-decoration:none; margin-bottom:6px}
+  .nav a.active{background:var(--glass); color:var(--white)}
+  /* Main area */
+  .main{display:flex; flex-direction:column; gap:16px}
+  .topbar{display:flex; justify-content:space-between; gap:12px; align-items:center}
+  .searchbox{display:flex; gap:8px; align-items:center; background:var(--glass); padding:8px 12px; border-radius:999px; min-width:280px}
+  .searchbox input{background:transparent; border:0; outline:0; color:var(--white); width:100%}
+  .actions{display:flex; gap:8px; align-items:center}
+  .btn{background:linear-gradient(90deg,var(--accent), #7c3aed); padding:8px 12px; border-radius:10px; color:#021021; border:0; cursor:pointer; font-weight:600}
+  .btn.ghost{background:transparent; color:var(--white); border:1px solid rgba(255,255,255,0.04)}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px; border-radius:14px; box-shadow:0 6px 20px rgba(2,8,23,0.6); }
+  .cards{display:flex; gap:12px; flex-wrap:wrap}
+  .stat{flex:1; min-width:160px}
+  .stat h3{margin:0; font-size:20px}
+  .stat p{margin:6px 0 0; color:var(--muted); font-size:13px}
+  /* controls */
+  .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  select,input[type="number"]{background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--white); padding:8px 10px; border-radius:8px}
+  /* table */
+  .table-wrap{overflow:auto}
+  table{width:100%; border-collapse:collapse; min-width:900px}
+  thead th{padding:12px; text-align:left; color:var(--muted); font-weight:600; font-size:13px; position:sticky; top:0; background:transparent}
+  tbody td{padding:12px; border-top:1px solid rgba(255,255,255,0.03); vertical-align:middle}
+  .avatar{width:40px; height:40px; border-radius:8px; object-fit:cover}
+  .pill{padding:6px 8px; border-radius:999px; font-weight:600; font-size:13px}
+  .pill.active{background:rgba(16,185,129,0.12); color:var(--success)}
+  .pill.inactive{background:rgba(239,68,68,0.08); color:var(--danger)}
+  .small{font-size:13px; color:var(--muted)}
+  .table-actions button{margin-right:6px}
+  /* pagination */
+  .pagination{display:flex; gap:6px; align-items:center}
+  .pagebtn{background:transparent; border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; cursor:pointer}
+  /* modal */
+  .modal-back{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:999}
+  .modal{width:720px; max-width:95%; background:linear-gradient(180deg,#071224,#081426); border-radius:12px; padding:16px}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  label{font-size:13px; color:var(--muted); display:block; margin-bottom:6px}
+  input,select,textarea{width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:var(--white)}
+  .modal-footer{display:flex; justify-content:flex-end; gap:8px; margin-top:12px}
+  /* responsive */
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr; padding:12px}
+    .sidebar{height:auto; position:relative}
+    .cards{flex-direction:column}
+    .form-grid{grid-template-columns:1fr}
+  }
+  /* tiny helpers */
+  .muted{color:var(--muted)}
+  .center{text-align:center}
+  .danger{color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar card">
+    <div class="brand">
+      <div class="logo">EMS</div>
+      <div>
+        <div style="font-weight:700">Employee System</div>
+        <div class="small muted">Dashboard</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a class="active" href="#">Overview</a>
+      <a href="#">Employees</a>
+      <a href="#">Departments</a>
+      <a href="#">Settings</a>
+    </nav>
+
+    <div style="margin-top:16px" class="small muted">Quick actions</div>
+    <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+      <button class="btn" id="btnAdd">+ Add Employee</button>
+      <button class="btn ghost" id="btnImport">Import CSV</button>
+      <button class="btn ghost" id="btnExport">Export CSV</button>
+    </div>
+
+    <div style="margin-top:16px" class="small muted">Filters</div>
+    <div style="margin-top:8px; display:flex; gap:8px; flex-direction:column">
+      <select id="filterDept">
+        <option value="">All Departments</option>
+      </select>
+      <select id="filterStatus">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+      <button class="btn ghost" id="btnClearFilters">Clear</button>
+    </div>
+
+    <div style="margin-top:20px" class="small muted">Tip</div>
+    <div class="small muted">Click column headers to sort. Use the search box to find employees by name or email.</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div class="searchbox card" style="background:var(--glass);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="opacity:.7"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></circle></svg>
+          <input id="search" placeholder="Search employees by name, email..." />
+        </div>
+        <div class="controls">
+          <label class="small muted">Per page</label>
+          <select id="perPage">
+            <option>5</option><option selected>10</option><option>20</option><option>50</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <div class="small muted">Welcome, Admin</div>
+        <button class="btn ghost" id="btnBulkDelete">Delete Selected</button>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card stat">
+        <h3 id="totalEmp">0</h3>
+        <p>Total employees</p>
+      </div>
+      <div class="card stat">
+        <h3 id="avgSalary">0</h3>
+        <p>Average salary</p>
+      </div>
+      <div class="card stat">
+        <h3 id="deptCount">0</h3>
+        <p>Departments</p>
+      </div>
+      <div class="card stat" style="min-width:200px">
+        <h3 id="activeCount">0</h3>
+        <p>Active employees</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+        <strong>Employees</strong>
+        <div style="display:flex; gap:8px; align-items:center">
+          <button class="btn ghost" id="btnSelectAll">Select All</button>
+          <button class="btn" id="btnAddTop">+ Add</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAllTop" /></th>
+              <th data-key="name" class="sortable">Name ▲</th>
+              <th data-key="email" class="sortable">Email</th>
+              <th data-key="department" class="sortable">Department</th>
+              <th data-key="role" class="sortable">Role</th>
+              <th data-key="salary" class="sortable">Salary</th>
+              <th data-key="hireDate" class="sortable">Hire Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <!-- rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
+        <div class="pagination" id="pagination"></div>
+        <div class="small muted" id="tableInfo"></div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap">
+      <div class="card" style="flex:1; min-width:300px">
+        <strong>Employees by Department</strong>
+        <canvas id="deptChart" width="400" height="200" style="display:block; margin-top:12px"></canvas>
+      </div>
+
+      <div class="card" style="flex:1; min-width:260px">
+        <strong>Quick import (CSV)</strong>
+        <div class="small muted" style="margin-top:6px">CSV columns: name,email,role,department,salary,hireDate(YYYY-MM-DD),status,avatarURL</div>
+        <input type="file" id="csvFile" accept=".csv" style="margin-top:8px"/>
+        <div style="margin-top:8px; display:flex; gap:8px">
+          <button class="btn ghost" id="btnClearAll">Clear All Data</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal for add/edit -->
+<div class="modal-back" id="modalBack">
+  <div class="modal card">
+    <h3 id="modalTitle">Add Employee</h3>
+    <div style="margin-top:8px" class="small muted">Fill in employee details</div>
+
+    <form id="empForm" style="margin-top:12px">
+      <div class="form-grid">
+        <div>
+          <label for="name">Full name</label>
+          <input id="name" required />
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" type="email" required />
+        </div>
+
+        <div>
+          <label for="role">Role</label>
+          <input id="role" required />
+        </div>
+        <div>
+          <label for="department">Department</label>
+          <input id="department" required />
+        </div>
+
+        <div>
+          <label for="salary">Salary (₹)</label>
+          <input id="salary" type="number" min="0" required />
+        </div>
+        <div>
+          <label for="hireDate">Hire Date</label>
+          <input id="hireDate" type="date" required />
+        </div>
+
+        <div>
+          <label for="status">Status</label>
+          <select id="status">
+            <option>Active</option><option>Inactive</option>
+          </select>
+        </div>
+        <div>
+          <label for="avatarURL">Avatar URL</label>
+          <input id="avatarURL" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn ghost" id="btnCancel">Cancel</button>
+        <button type="submit" class="btn" id="btnSave">Save Employee</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/*
+  Employee Management Dashboard (single file)
+  - Data is stored in localStorage under key 'ems_employees_v1'
+  - Features: add, edit, delete, bulk delete, search, sort, filter, pagination, CSV import/export, simple chart
+*/
+
+// ---------- Utilities ----------
+const qs = sel => document.querySelector(sel);
+const qsa = sel => Array.from(document.querySelectorAll(sel));
+const STORAGE_KEY = 'ems_employees_v1';
+
+// default sample data if none present
+const defaultEmployees = [
+  {id: uid(), name:'Anil Kumar', email:'anil@example.com', role:'Software Engineer', department:'Engineering', salary:65000, hireDate:'2024-06-12', status:'Active', avatarURL:''},
+  {id: uid(), name:'Priya Sharma', email:'priya@example.com', role:'HR Manager', department:'HR', salary:72000, hireDate:'2023-11-02', status:'Active', avatarURL:''},
+  {id: uid(), name:'Ravi Patel', email:'ravi.patel@example.com', role:'Designer', department:'Product', salary:52000, hireDate:'2025-01-10', status:'Inactive', avatarURL:''},
+  {id: uid(), name:'Sneha Rao', email:'sneha@example.com', role:'Data Analyst', department:'Data', salary:60000, hireDate:'2024-03-18', status:'Active', avatarURL:''}
+];
+
+// helper uid
+function uid(){ return 'id-' + Math.random().toString(36).slice(2,10); }
+
+function saveData(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+function loadData(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) { saveData(defaultEmployees); return defaultEmployees.slice(); }
+    return JSON.parse(raw);
+  } catch(e){
+    console.error(e);
+    saveData(defaultEmployees); return defaultEmployees.slice();
+  }
+}
+
+// format money
+function money(n){
+  if (isNaN(n)) return '₹0';
+  // format with grouping, digit-by-digit safe
+  return '₹' + Number(n).toLocaleString('en-IN');
+}
+
+// parse date YYYY-MM-DD to readable
+function formatDate(d){
+  if(!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString();
+}
+
+// ---------- State ----------
+let employees = loadData();
+let state = {
+  search: '',
+  sortKey: 'name',
+  sortDir: 1,
+  page: 1,
+  perPage: 10,
+  filterDept: '',
+  filterStatus: '',
+  selectedIds: new Set(),
+  editingId: null
+};
+
+// ---------- DOM refs ----------
+const tbody = qs('#tbody');
+const totalEmp = qs('#totalEmp');
+const avgSalary = qs('#avgSalary');
+const deptCount = qs('#deptCount');
+const activeCount = qs('#activeCount');
+const searchInput = qs('#search');
+const perPageSelect = qs('#perPage');
+const paginationEl = qs('#pagination');
+const tableInfo = qs('#tableInfo');
+const filterDept = qs('#filterDept');
+const filterStatus = qs('#filterStatus');
+const modalBack = qs('#modalBack');
+const empForm = qs('#empForm');
+const modalTitle = qs('#modalTitle');
+const csvFile = qs('#csvFile');
+
+// form fields
+const fName = qs('#name'), fEmail = qs('#email'), fRole = qs('#role'), fDept = qs('#department'),
+      fSalary = qs('#salary'), fHire = qs('#hireDate'), fStatus = qs('#status'), fAvatar = qs('#avatarURL');
+
+// ---------- Render helpers ----------
+function uniqueDepartments(list){
+  const set = new Set(list.map(e => e.department || 'Unassigned').filter(Boolean));
+  return Array.from(set).sort();
+}
+
+function renderFilters(){
+  const depts = uniqueDepartments(employees);
+  filterDept.innerHTML = '<option value="">All Departments</option>';
+  qs('#filterDept').innerHTML = '<option value="">All Departments</option>';
+  depts.forEach(d => {
+    const o = document.createElement('option'); o.value = d; o.textContent = d;
+    filterDept.appendChild(o);
+  });
+  // also fill sidebar identical select
+  const sideSelect = document.querySelector('aside select');
+  // (the first select in sidebar is the same id we already handled above)
+}
+
+// sorting comparator
+function compare(a,b,key){
+  const av = a[key] ?? '';
+  const bv = b[key] ?? '';
+  // handle numbers & dates
+  if(key === 'salary') return Number(av) - Number(bv);
+  if(key === 'hireDate') return new Date(av) - new Date(bv);
+  return String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+}
+
+function filteredSorted(){
+  let list = employees.slice();
+
+  // filters
+  if(state.filterDept) list = list.filter(e => (e.department || '') === state.filterDept);
+  if(state.filterStatus) list = list.filter(e => (e.status || '') === state.filterStatus);
+
+  // search
+  const q = state.search.trim().toLowerCase();
+  if(q){
+    list = list.filter(e => {
+      return (e.name||'').toLowerCase().includes(q) || (e.email||'').toLowerCase().includes(q) || (e.role||'').toLowerCase().includes(q);
+    });
+  }
+
+  // sort
+  list.sort((a,b) => state.sortDir * compare(a,b,state.sortKey));
+
+  return list;
+}
+
+function renderTable(){
+  const list = filteredSorted();
+  const total = list.length;
+  const per = Number(state.perPage);
+  const pages = Math.max(1, Math.ceil(total / per));
+  if(state.page > pages) state.page = pages;
+
+  const start = (state.page - 1) * per;
+  const pageItems = list.slice(start, start + per);
+
+  tbody.innerHTML = '';
+  for(const emp of pageItems){
+    const tr = document.createElement('tr');
+    const checked = state.selectedIds.has(emp.id) ? 'checked' : '';
+    tr.innerHTML = `
+      <td><input type="checkbox" data-id="${emp.id}" ${checked} class="rowcheck" /></td>
+      <td>
+        <div style="display:flex; gap:10px; align-items:center">
+          <img class="avatar" src="${emp.avatarURL || placeholderAvatar(emp.name)}" onerror="this.src='${placeholderAvatar(emp.name)}'"/>
+          <div>
+            <div style="font-weight:700">${escapeHtml(emp.name)}</div>
+            <div class="small muted">${escapeHtml(emp.email)}</div>
+          </div>
+        </div>
+      </td>
+      <td>${escapeHtml(emp.email)}</td>
+      <td>${escapeHtml(emp.department)}</td>
+      <td>${escapeHtml(emp.role)}</td>
+      <td>${money(emp.salary)}</td>
+      <td>${formatDate(emp.hireDate)}</td>
+      <td><span class="pill ${emp.status==='Active' ? 'active' : 'inactive'}">${emp.status}</span></td>
+      <td class="table-actions">
+        <button class="btn ghost btn-edit" data-id="${emp.id}">Edit</button>
+        <button class="btn danger btn-delete" data-id="${emp.id}" style="background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--danger)">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  renderPagination(pages, total);
+  tableInfo.textContent = `Showing ${Math.min(total, start+1)} - ${Math.min(total, start + per)} of ${total}`;
+  renderStats();
+  attachRowActions();
+}
+
+function renderPagination(totalPages, totalItems){
+  paginationEl.innerHTML = '';
+
+  const createBtn = (text, disabled, onClick) => {
+    const b = document.createElement('button'); b.className='pagebtn'; b.textContent = text;
+    if(disabled) b.disabled = true;
+    b.addEventListener('click', onClick);
+    return b;
+  };
+
+  paginationEl.appendChild(createBtn('<<', state.page===1, ()=>{ state.page=1; renderTable(); }));
+  paginationEl.appendChild(createBtn('<', state.page===1, ()=>{ state.page = Math.max(1, state.page-1); renderTable(); }));
+
+  // page numbers (show up to 7 pages)
+  let start = Math.max(1, state.page - 3);
+  let end = Math.min(totalPages, start + 6);
+  if(end - start < 6) start = Math.max(1, end - 6);
+
+  for(let p=start;p<=end;p++){
+    const btn = createBtn(p, false, ()=>{ state.page = p; renderTable(); });
+    if(p===state.page) { btn.style.fontWeight='700'; btn.style.border='1px solid rgba(255,255,255,0.05)'; }
+    paginationEl.appendChild(btn);
+  }
+
+  paginationEl.appendChild(createBtn('>', state.page===totalPages, ()=>{ state.page = Math.min(totalPages, state.page+1); renderTable(); }));
+  paginationEl.appendChild(createBtn('>>', state.page===totalPages, ()=>{ state.page = totalPages; renderTable(); }));
+}
+
+// ---------- Stats & Chart ----------
+function renderStats(){
+  const list = employees;
+  totalEmp.textContent = list.length;
+
+  const active = list.filter(e => e.status === 'Active').length;
+  activeCount.textContent = active;
+
+  const depts = uniqueDepartments(list);
+  deptCount.textContent = depts.length;
+
+  const avg = list.length ? Math.round(list.reduce((s,e)=>s + Number(e.salary || 0), 0) / list.length) : 0;
+  avgSalary.textContent = money(avg);
+
+  drawDeptChart();
+}
+
+function drawDeptChart(){
+  const canvas = qs('#deptChart');
+  const ctx = canvas.getContext('2d');
+  const byDept = {};
+  for(const e of employees){ const d = e.department || 'Unassigned'; byDept[d] = (byDept[d]||0) + 1; }
+  const labels = Object.keys(byDept);
+  const vals = Object.values(byDept);
+
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(labels.length === 0){
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillText('No data', 10, 20);
+    return;
+  }
+
+  // simple pie chart
+  const total = vals.reduce((a,b)=>a+b,0);
+  let startAngle = -Math.PI/2;
+  const cx = canvas.width/2, cy = canvas.height/2, r = Math.min(cx, cy) - 10;
+  for(let i=0;i<vals.length;i++){
+    const slice = vals[i] / total;
+    const angle = slice * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r, startAngle, startAngle + angle);
+    ctx.closePath();
+    ctx.fillStyle = colorFor(i);
+    ctx.fill();
+
+    // label
+    const mid = startAngle + angle/2;
+    const lx = cx + Math.cos(mid) * (r + 10);
+    const ly = cy + Math.sin(mid) * (r + 10);
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Inter, Arial';
+    const percent = Math.round(slice*100) + '%';
+    ctx.fillText(labels[i] + ' ' + percent, lx - 20, ly);
+    startAngle += angle;
+  }
+
+  function colorFor(i){
+    // a small deterministic palette
+    const palette = ['#06b6d4','#7c3aed','#ef4444','#f59e0b','#10b981','#3b82f6','#ec4899','#14b8a6'];
+    return palette[i % palette.length];
+  }
+}
+
+// ---------- Actions ----------
+function attachRowActions(){
+  // row checkboxes
+  qsa('.rowcheck').forEach(el => {
+    el.onchange = e => {
+      const id = e.target.dataset.id;
+      if(e.target.checked) state.selectedIds.add(id); else state.selectedIds.delete(id);
+    };
+  });
+
+  // edit buttons
+  qsa('.btn-edit').forEach(b => b.addEventListener('click', e => {
+    const id = e.target.dataset.id;
+    openEdit(id);
+  }));
+
+  // delete buttons
+  qsa('.btn-delete').forEach(b => b.addEventListener('click', e => {
+    const id = e.target.dataset.id;
+    if(confirm('Delete this employee?')) {
+      employees = employees.filter(emp => emp.id !== id);
+      saveData(employees);
+      state.selectedIds.delete(id);
+      renderTable();
+    }
+  }));
+}
+
+// placeholder avatar generator (initials)
+function placeholderAvatar(name){
+  const initials = (name || 'U').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  // use data URL svg
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' fill='#0b1220'/><text x='50%' y='50%' font-size='72' text-anchor='middle' dominant-baseline='middle' fill='#06b6d4' font-family='Arial'>${initials}</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+// simple html escaper
+function escapeHtml(text){
+  if(text === undefined || text === null) return '';
+  return String(text)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ---------- Form & Modal ----------
+function openAdd(){
+  modalTitle.textContent = 'Add Employee';
+  empForm.reset();
+  state.editingId = null;
+  modalBack.style.display = 'flex';
+  // default hire date to today
+  fHire.value = new Date().toISOString().slice(0,10);
+}
+function openEdit(id){
+  const e = employees.find(x => x.id === id);
+  if(!e) return alert('Employee not found');
+  modalTitle.textContent = 'Edit Employee';
+  state.editingId = id;
+  fName.value = e.name || '';
+  fEmail.value = e.email || '';
+  fRole.value = e.role || '';
+  fDept.value = e.department || '';
+  fSalary.value = e.salary || '';
+  fHire.value = e.hireDate || '';
+  fStatus.value = e.status || 'Active';
+  fAvatar.value = e.avatarURL || '';
+  modalBack.style.display = 'flex';
+}
+
+// close modal
+qs('#btnCancel').addEventListener('click', ()=> modalBack.style.display = 'none');
+modalBack.addEventListener('click', (e)=> { if(e.target === modalBack) modalBack.style.display = 'none'; });
+
+empForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const data = {
+    name: fName.value.trim(),
+    email: fEmail.value.trim(),
+    role: fRole.value.trim(),
+    department: fDept.value.trim(),
+    salary: Number(fSalary.value) || 0,
+    hireDate: fHire.value || '',
+    status: fStatus.value || 'Active',
+    avatarURL: fAvatar.value.trim()
+  };
+  if(!data.name || !data.email) return alert('Name and email required');
+
+  if(state.editingId){
+    // update
+    employees = employees.map(emp => emp.id === state.editingId ? {...emp, ...data} : emp);
+    state.editingId = null;
+  } else {
+    // new
+    employees.push({...data, id: uid()});
+  }
+  saveData(employees);
+  renderFilters();
+  modalBack.style.display = 'none';
+  renderTable();
+});
+
+// ---------- CSV Import/Export ----------
+function exportCSV(){
+  const cols = ['id','name','email','role','department','salary','hireDate','status','avatarURL'];
+  const rows = [cols.join(',')];
+  for(const e of employees){
+    const vals = cols.map(c => `"${String(e[c] ?? '').replace(/"/g,'""')}"`);
+    rows.push(vals.join(','));
+  }
+  const csv = rows.join('\\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'employees.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+csvFile.addEventListener('change', (ev)=>{
+  const f = ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text = e.target.result;
+      const parsed = parseCSV(text);
+      // convert records to employees
+      const newEmps = parsed.map(rec => ({
+        id: uid(),
+        name: rec.name || '',
+        email: rec.email || '',
+        role: rec.role || '',
+        department: rec.department || '',
+        salary: Number(rec.salary) || 0,
+        hireDate: rec.hireDate || '',
+        status: rec.status || 'Active',
+        avatarURL: rec.avatarURL || ''
+      }));
+      employees = employees.concat(newEmps);
+      saveData(employees);
+      renderFilters();
+      renderTable();
+      alert('Imported ' + newEmps.length + ' employees');
+    } catch(err){
+      alert('Error parsing CSV: ' + err.message);
+    }
+  };
+  reader.readAsText(f);
+});
+
+// simple CSV parser (supports quoted fields)
+function parseCSV(text){
+  // split into lines but keep quoted newlines safe
+  const lines = [];
+  let cur = '';
+  let inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    cur += ch;
+    if(ch === '"'){ inQuotes = !inQuotes; }
+    if(ch === '\\n' && !inQuotes){ lines.push(cur.trim()); cur=''; }
+  }
+  if(cur.trim()) lines.push(cur.trim());
+  // fallback if above didn't work (most CSVs)
+  if(lines.length === 0) lines.push(...text.split(/\\r?\\n/));
+
+  const header = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const records = [];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    const row = splitCSVLine(lines[i]);
+    const obj = {};
+    for(let j=0;j<header.length;j++) obj[header[j]] = row[j] ? row[j].replace(/^"|"$/g,'').replace(/""/g,'"') : '';
+    records.push(obj);
+  }
+  return records;
+
+  function splitCSVLine(line){
+    const out = [];
+    let cur = '';
+    let inQ = false;
+    for(let i=0;i<line.length;i++){
+      const c = line[i];
+      if(c === '"' ) { cur += c; inQ = !inQ; continue; }
+      if(c === ',' && !inQ) { out.push(cur); cur=''; continue; }
+      cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+}
+
+function importCSVText(csvText){
+  const parsed = parseCSV(csvText);
+  const newEmps = parsed.map(rec => ({
+    id: uid(),
+    name: rec.name || '',
+    email: rec.email || '',
+    role: rec.role || '',
+    department: rec.department || '',
+    salary: Number(rec.salary) || 0,
+    hireDate: rec.hireDate || '',
+    status: rec.status || 'Active',
+    avatarURL: rec.avatarURL || ''
+  }));
+  employees = employees.concat(newEmps);
+  saveData(employees);
+  renderFilters();
+  renderTable();
+}
+
+// ---------- Bulk delete & select ----------
+qs('#btnBulkDelete').addEventListener('click', ()=>{
+  if(state.selectedIds.size === 0) return alert('No employees selected');
+  if(!confirm('Delete selected employees?')) return;
+  employees = employees.filter(e => !state.selectedIds.has(e.id));
+  state.selectedIds.clear();
+  saveData(employees);
+  renderTable();
+});
+
+qs('#btnSelectAll').addEventListener('click', ()=>{
+  const list = filteredSorted();
+  list.forEach(e => state.selectedIds.add(e.id));
+  renderTable();
+});
+
+qs('#selectAllTop').addEventListener('change', (e)=>{
+  if(e.target.checked){
+    filteredSorted().forEach(x => state.selectedIds.add(x.id));
+  } else {
+    state.selectedIds.clear();
+  }
+  renderTable();
+});
+
+// clear all
+qs('#btnClearAll').addEventListener('click', ()=>{
+  if(confirm('This will remove all employee data. Continue?')){
+    employees = [];
+    saveData(employees);
+    renderFilters();
+    renderTable();
+  }
+});
+
+// clear filters
+qs('#btnClearFilters').addEventListener('click', ()=>{
+  state.filterDept = '';
+  state.filterStatus = '';
+  filterDept.value = '';
+  filterStatus.value = '';
+  renderTable();
+});
+
+// add buttons
+qs('#btnAdd').addEventListener('click', openAdd);
+qs('#btnAddTop').addEventListener('click', openAdd);
+
+// export
+qs('#btnExport').addEventListener('click', exportCSV);
+
+// import (trigger file input)
+qs('#btnImport').addEventListener('click', ()=> csvFile.click());
+
+// clear filters on sidebar select changes
+filterDept.addEventListener('change', (e)=> { state.filterDept = e.target.value; state.page = 1; renderTable(); });
+filterStatus.addEventListener('change', (e)=> { state.filterStatus = e.target.value; state.page = 1; renderTable(); });
+
+// search & per page & sorting
+searchInput.addEventListener('input', (e)=> { state.search = e.target.value; state.page = 1; renderTable(); });
+perPageSelect.addEventListener('change', (e)=> { state.perPage = Number(e.target.value); state.page = 1; renderTable(); });
+
+// column sorting by clicking header
+qsa('th.sortable').forEach(th => {
+  th.style.cursor = 'pointer';
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(state.sortKey === key) state.sortDir = -state.sortDir; else { state.sortKey = key; state.sortDir = 1; }
+    renderTable();
+  });
+});
+
+// select row by clicking anywhere? (not necessary)
+
+// ---------- Init ----------
+function init(){
+  renderFilters();
+  renderTable();
+  // keep UI selects in sync
+  perPageSelect.value = String(state.perPage);
+}
+
+// small color-safe random palette for chart's legend later
+function colorFor(i){
+  const palette = ['#06b6d4','#7c3aed','#ef4444','#f59e0b','#10b981','#3b82f6','#ec4899','#14b8a6'];
+  return palette[i % palette.length];
+}
+
+// small helper: allow deleting single employee by id (exposed)
+function deleteEmployeeById(id){
+  employees = employees.filter(e => e.id !== id);
+  saveData(employees);
+  renderTable();
+}
+
+// auto init
+init();
+
+</script>
+</body>
+</html>
